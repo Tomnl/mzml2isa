@@ -104,7 +104,7 @@ class MzMLFile(object):
     # `~pronto.Ontology`: the default MS controlled vocabulary to use.
     _VOCABULARY = pronto.Ontology(
         pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
-        imports=False,
+        import_depth=0,
     )
 
     def __init__(self, filesystem, path, vocabulary=None):
@@ -909,7 +909,7 @@ class MzMLFile(object):
 
         """
         descendents = {
-            k: self.vocabulary[k].rchildren().id + [k]
+            k: self.vocabulary[k].subclasses().to_set().ids
             for k in (param_info.accession for param_info in parameters)
         }
 
@@ -1003,7 +1003,7 @@ class MzMLFile(object):
     def _extract_spectrum_representation(self, meta):
         """Extract spectrum representation into the metadata dictionary.
         """
-        representations = self.vocabulary["MS:1000525"].rchildren()
+        representations = self.vocabulary["MS:1000525"].subclasses(with_self=False).to_set().ids
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
@@ -1087,14 +1087,14 @@ class MzMLFile(object):
         """Extract data file content into the metadata dictionary.
         """
 
-        file_contents = self.vocabulary["MS:1000524"].rchildren().id
+        file_contents = self.vocabulary["MS:1000524"].subclasses(with_self=False).to_set().ids
 
         def unique_everseen(it, key):
             memo = set()
             for element in it:
                 signature = key(element)
-                if signature not in seen:
-                    seen.add(signature)
+                if signature not in memo:
+                    memo.add(signature)
                     yield element
 
         meta["Data file content"] = {
@@ -1120,7 +1120,7 @@ class MzMLFile(object):
         # with its attached parameters or a referenceableParamGroup referenced
         # in the instrument
         instrument = self._find_instrument_config()
-        manufacturers = self.vocabulary["MS:1000031"].children.id
+        manufacturers = self.vocabulary["MS:1000031"].subclasses(with_self=False, distance=1).to_set().ids
 
         # The parameters we want to extract (Instrument Manufacturer will be
         # handled differently later)
@@ -1158,7 +1158,7 @@ class MzMLFile(object):
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next((p for p in term.rparents() if p.id in manufacturers), term)
+            man = next((p for p in term.superclasses() if p.id in manufacturers), term)
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,
