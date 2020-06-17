@@ -104,7 +104,6 @@ class MzMLFile(object):
     # `~pronto.Ontology`: the default MS controlled vocabulary to use.
     _VOCABULARY = pronto.Ontology(
         pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
-        import_depth=0,
     )
 
     def __init__(self, filesystem, path, vocabulary=None):
